@@ -1,0 +1,169 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>TaskManager</title>
+    <style>
+        body {
+            font-family: Arial, sans-serif;
+            background-color: #f4f4f9;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            padding: 20px;
+        }
+        .container {
+            background: white;
+            padding: 20px;
+            border-radius: 8px;
+            box-shadow: 0 5px 10px rgba(0, 0, 0, 0.1);
+            width: 100%;
+            max-width: 500px;
+            margin-bottom: 20px;
+        }
+        input, textarea {
+            width: 100%;
+            padding: 10px;
+            margin: 5px 0;
+            border: 1px solid #ccc;
+            border-radius: 5px;
+        }
+        button {
+            padding: 10px 15px;
+            border: none;
+            border-radius: 5px;
+            background-color: #007bff;
+            color: white;
+            cursor: pointer;
+            margin-top: 10px;
+        }
+        button:hover {
+            background-color: #0056b3;
+        }
+        .task {
+            background: #fff;
+            padding: 10px;
+            margin-top: 10px;
+            border-radius: 5px;
+            box-shadow: 0 2px 5px rgba(0, 0, 0, 0.1);
+            position: relative;
+            display: flex;
+            flex-direction: column;
+            gap: 5px;
+        }
+        .delete-btn {
+            background: red;
+            color: white;
+            border: none;
+            padding: 5px 10px;
+            border-radius: 5px;
+            cursor: pointer;
+            align-self: flex-end;
+        }
+        #taskList {
+            list-style-type: none;
+            padding: 0;
+            width: 100%;
+        }
+    </style>
+</head>
+<body>
+
+    <div class="container">
+        <h2>Add New Task</h2>
+        <hr>
+        <div class="form-container">
+            <form id="taskForm">
+                <label for="taskName">Task Name:</label>
+                <input type="text" id="taskName" placeholder="Enter Task Name" required>
+                
+                <label for="taskDescription">Description:</label>
+                <textarea id="taskDescription" placeholder="Enter Task Description" rows="4"></textarea>
+
+                <label for="dueDate">Due Date:</label>
+                <input type="date" id="dueDate" required>
+
+                <button type="submit">Add Task</button>
+            </form>
+        </div>
+    </div>
+
+    <div class="container">
+        <h2>Your Tasks</h2>
+        <hr>
+        <ul id="taskList"></ul>
+    </div>
+
+    <script>
+        // Function to load tasks from the backend
+        function loadTasks() {
+            fetch("http://localhost:5000/gettasks")
+                .then(response => response.json())
+                .then(tasks => {
+                    const taskList = document.getElementById("taskList");
+                    taskList.innerHTML = ""; // Clear previous tasks
+
+                    tasks.forEach(task => {
+                        const li = document.createElement("li");
+                        li.className = "task";
+                        li.innerHTML = `
+                            <div>
+                                <h4>${task.taskname}</h4>
+                                <p>${task.taskdescription}</p>
+                                <p><strong>Due:</strong> ${task.duedate}</p>
+                                <button class="delete-btn" onclick="deleteTask(${task.id})">Delete</button>
+                            </div>
+                        `;
+                        taskList.appendChild(li);
+                    });
+                })
+                .catch(error => console.error("Error fetching tasks:", error));
+        }
+
+        function deleteTask(taskId) {
+            console.log("Deleting task with ID:", taskId);  // Debugging log
+            if (!taskId) {
+                alert("Error: Task ID is undefined!");
+                return;
+            }
+            fetch(`http://localhost:5000/deletetask/${taskId}`, { method: "DELETE" })
+                .then(response => response.text())
+                .then(message => {
+                    alert(message);
+                    loadTasks(); // Reload tasks after deletion
+                })
+                .catch(error => console.error("Error deleting task:", error));
+        }
+            
+            document.getElementById("taskForm").addEventListener("submit", function (e) {
+            e.preventDefault();
+            
+            const taskName = document.getElementById("taskName").value.trim();
+            const taskDescription = document.getElementById("taskDescription").value.trim();
+            const dueDate = document.getElementById("dueDate").value;
+    
+            if (!taskName || !taskDescription || !dueDate) {
+                alert("Please fill out all fields.");
+                return;
+            }
+    
+            fetch("http://localhost:5000/addtask", {
+                method: "POST",
+                headers: { "Content-Type": "application/json" },
+                body: JSON.stringify({ taskname: taskName, taskdescription: taskDescription, duedate: dueDate })
+            })
+            .then(response => response.text())
+            .then(message => {
+                alert(message);
+                loadTasks(); // Reload task list after adding
+            })
+            .catch(error => console.error("Error adding task:", error));
+        });
+    
+        // Load tasks on page load
+        loadTasks();
+    </script>
+
+</body>
+</html>
